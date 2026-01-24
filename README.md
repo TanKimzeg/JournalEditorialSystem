@@ -33,7 +33,7 @@
 
 - 后端框架：Spring Boot（WebMVC、Security、Data JPA）
 - 安全与认证：Spring Security + JWT
-- 数据访问：Hibernate/JPA，MySQL 驱动 mysql-connector-j
+- 数据访问：Hibernate/JPA，MySQL 驱动
 - 接口文档：springdoc-openapi + Knife4j（OpenAPI 3）
 - 对象映射：MapStruct（DTO/VO 与实体转换）
 - 构建工具：Maven（spring-boot-maven-plugin 可执行打包）
