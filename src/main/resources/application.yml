@@ -1,0 +1,55 @@
+server:
+  port: 8080
+spring:
+  application.name: JournalEditorialSystem
+  datasource:
+    url: jdbc:mysql://localhost:3306/spring_application?useUnicode=true&characterEncoding=UTF-8&useSSL=false
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: spring
+    password: spring
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      maximum-pool-size: 8
+      auto-commit: true
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MySQLDialect
+    show-sql: true
+    # 如果要用 data.sql 初始化数据，需要加上这个配置
+    defer-datasource-initialization: true
+  security:
+    user:
+      name: admin
+      password: admin123
+
+# springdoc-openapi项目配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  packages-to-scan: top.tankimzeg.editorial_system.controller
+  default-flat-param-object: true
+# knife4j的增强配置
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+    enable-footer-custom: true
+    enable-version: true
+    footer-custom-content: "Apache License 2.0  |  Copyright © 2026 期刊在线采编系统"
+
+jwt:
+  secret: "ManuscriptSystemSecretKey MUST have a size >= 256 bits"
+  expiration: 86400000 # 1 day in milliseconds
+
+# 文件存储配置
+storage:
+  upload-dir: uploads
+  max-size-bytes: 10485760 # 10MB
+  # @see https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Guides/MIME_types/Common_types
+  allowed-types: "application/pdf,application/msword,
+  application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg,text/plain"
