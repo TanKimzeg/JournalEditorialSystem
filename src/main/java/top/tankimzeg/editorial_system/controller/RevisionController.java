@@ -2,6 +2,7 @@ package top.tankimzeg.editorial_system.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -48,7 +49,7 @@ public class RevisionController {
     @PostMapping(value = "/{manuscriptId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<RevisionVO> submitRevision(
             @PathVariable Long manuscriptId,
-            @RequestPart(name = "metadata") RevisionDTO revisionDTO,
+            @Valid @RequestPart(name = "metadata") RevisionDTO revisionDTO,
             @RequestPart(name = "files", required = false) List<MultipartFile> attachmentFiles
     ) {
         ManuscriptProcess latestProcess =

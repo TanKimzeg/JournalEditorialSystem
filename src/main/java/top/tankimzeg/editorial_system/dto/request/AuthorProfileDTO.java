@@ -1,5 +1,7 @@
 package top.tankimzeg.editorial_system.dto.request;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import top.tankimzeg.editorial_system.entity.Profile;
@@ -13,6 +15,8 @@ import top.tankimzeg.editorial_system.entity.Profile;
 @Setter
 public class AuthorProfileDTO {
 
+    @NotNull(message = "个人资料不能为空")
+    @Valid
     private Profile baseProfile;
 
 }

@@ -2,6 +2,7 @@ package top.tankimzeg.editorial_system.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -38,7 +39,8 @@ public class SelfRecommendationController {
 
     @Operation(summary = "提交申请", description = "作者提交自荐审稿专家申请")
     @PostMapping("/apply")
-    public ApiResponse<SelfRecommendationVO> applySelfRecommendation(@RequestBody String reason) {
+    public ApiResponse<SelfRecommendationVO> applySelfRecommendation(
+            @Valid @RequestBody String reason) {
         if (!SecurityUtil.getCurrentUserRole()
                 .equals(User.Role.AUTHOR)) {
             throw new BusinessException(HttpStatus.FORBIDDEN,
@@ -61,7 +63,7 @@ public class SelfRecommendationController {
     @Operation(summary = "主编审批", description = "主编审批作者自荐审稿专家申请")
     @PostMapping("/approve/{id}")
     public ApiResponse<SelfRecommendationVO> approveSelfRecommendation(
-            @PathVariable Long id, @RequestBody ApproveSelfRecommendationDTO approveDto
+            @PathVariable Long id, @Valid @RequestBody ApproveSelfRecommendationDTO approveDto
     ) {
         if (!SecurityUtil.isEditor()) {
             throw new BusinessException(HttpStatus.FORBIDDEN,

@@ -2,6 +2,7 @@ package top.tankimzeg.editorial_system.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +34,7 @@ public class AuthorProfileController {
     @PreAuthorize("hasRole('AUTHOR')")
     @PostMapping()
     @Operation(summary = "创建用户信息", description = "创建一个新的用户信息")
-    public ApiResponse<AuthorProfileVO> createProfile(@RequestBody AuthorProfileDTO profile) {
+    public ApiResponse<AuthorProfileVO> createProfile(@Valid @RequestBody AuthorProfileDTO profile) {
         return ApiResponse.success(authorProfileService.createAuthorProfile(
                 SecurityUtil.getCurrentUserId(), profile));
     }
@@ -49,7 +50,7 @@ public class AuthorProfileController {
     @PreAuthorize("hasRole('AUTHOR')")
     @PatchMapping("/me")
     @Operation(summary = "更新用户信息", description = "根据用户ID更新用户的详细信息")
-    public ApiResponse<AuthorProfileVO> updateProfile(@RequestBody AuthorProfileDTO profile) {
+    public ApiResponse<AuthorProfileVO> updateProfile(@Valid @RequestBody AuthorProfileDTO profile) {
         Long id = SecurityUtil.getCurrentUserId();
         return ApiResponse.success(authorProfileService.patchAuthorProfile(id, profile));
     }

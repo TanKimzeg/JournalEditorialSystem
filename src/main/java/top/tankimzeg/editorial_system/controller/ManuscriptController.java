@@ -2,6 +2,7 @@ package top.tankimzeg.editorial_system.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -54,7 +55,7 @@ public class ManuscriptController {
     @PostMapping(value = "/submit", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public ApiResponse<ManuscriptVO> submitManuscript(
             @RequestPart(name = "files") List<MultipartFile> attachments,
-            @RequestPart(name = "metadata") ManuscriptDTO manuscriptDTO) {
+            @Valid @RequestPart(name = "metadata") ManuscriptDTO manuscriptDTO) {
         Long authorId = SecurityUtil.getCurrentUserId();
         if (!SecurityUtil.isAuthor()) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "您不是注册作者，无法提交稿件");
@@ -71,7 +72,7 @@ public class ManuscriptController {
     public ApiResponse<ManuscriptVO> updateManuscript(
             @PathVariable Long id,
             @RequestPart(name = "files", required = false) List<MultipartFile> attachments,
-            @RequestPart(name = "metadata") ManuscriptDTO manuscriptDTO) {
+            @Valid @RequestPart(name = "metadata") ManuscriptDTO manuscriptDTO) {
         Long authorId = SecurityUtil.getCurrentUserId();
         if (!SecurityUtil.isAuthor()) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "您不是注册作者，无法更新稿件");

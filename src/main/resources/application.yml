@@ -3,7 +3,7 @@ server:
 spring:
   application.name: JournalEditorialSystem
   datasource:
-    url: jdbc:mysql://localhost:3306/spring_application?useUnicode=true&characterEncoding=UTF-8&useSSL=false
+    url: jdbc:mysql://localhost:3306/spring_application?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: spring
     password: spring

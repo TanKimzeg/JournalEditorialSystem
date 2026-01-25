@@ -9,7 +9,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import top.tankimzeg.editorial_system.dto.response.JwtResponse;
 import top.tankimzeg.editorial_system.dto.request.LoginRequest;
@@ -23,6 +22,8 @@ import top.tankimzeg.editorial_system.utils.JwtUtil;
 import org.springframework.security.core.AuthenticationException;
 import top.tankimzeg.editorial_system.utils.SecurityUtil;
 import top.tankimzeg.editorial_system.utils.ApiResponse;
+
+import jakarta.validation.Valid;
 
 /**
  * @author Kim
@@ -49,7 +50,7 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "用户登录", description = "用户通过用户名和密码进行登录，成功后返回JWT令牌")
     public ApiResponse<JwtResponse> authenticateUser(
-            @Validated @RequestBody LoginRequest loginRequest
+            @Valid @RequestBody LoginRequest loginRequest
     ) {
         try {
             Authentication authentication = authenticationManager.authenticate(
@@ -78,7 +79,7 @@ public class AuthController {
     @PostMapping("/register")
     @Operation(summary = "用户注册", description = "新用户注册接口")
     public ApiResponse<JwtResponse> registerUser(
-            @RequestBody RegisterRequest registerRequest
+            @Valid @RequestBody RegisterRequest registerRequest
     ) {
         if (userService.existsByUsername(registerRequest.getUsername())) {
             throw new BusinessException("用户名已被注册");
@@ -92,7 +93,7 @@ public class AuthController {
         newUser.setUsername(registerRequest.getUsername());
         newUser.setEmail(registerRequest.getEmail());
         newUser.setRealName(registerRequest.getRealName());
-        newUser.setRole(User.Role.valueOf(registerRequest.getRole().toUpperCase()));
+        newUser.setRole(User.Role.AUTHOR);
         newUser.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         User createdUser = userService.createAuthor(newUser);
 
