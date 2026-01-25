@@ -11,9 +11,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import top.tankimzeg.editorial_system.dto.request.ReviewDTO;
 import top.tankimzeg.editorial_system.dto.response.ManuscriptProcessVO;
-import top.tankimzeg.editorial_system.entity.AuthorProfile;
+import top.tankimzeg.editorial_system.dto.response.ReviewVO;
 import top.tankimzeg.editorial_system.entity.ManuscriptProcess;
-import top.tankimzeg.editorial_system.entity.Review;
 import top.tankimzeg.editorial_system.exception.BusinessException;
 import top.tankimzeg.editorial_system.mapper.ReviewRecordMapper;
 import top.tankimzeg.editorial_system.repository.AuthorProfileRepo;
@@ -46,11 +45,15 @@ public class ReviewerController {
     @Autowired
     private AuthorProfileRepo authorProfileRepo;
 
-    private static final ReviewRecordMapper reviewMapper = ReviewRecordMapper.INSTANCE;
+    @Autowired
+    private ManuscriptProcessService manuscriptProcessService;
+
+    @Autowired
+    private EditorService editorService;
 
     @Operation(summary = "提交评审", description = "审稿人提交稿件评审意见")
     @PostMapping(value = "/{manuscriptId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<Review> submitReviewerReview(
+    public ApiResponse<ReviewVO> submitReviewerReview(
             @PathVariable Long manuscriptId,
             @RequestPart(name = "metadata") ReviewDTO reviewDTO,
             @RequestPart(name = "files", required = false) List<MultipartFile> attachmentFiles
@@ -67,11 +70,10 @@ public class ReviewerController {
         )) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "您不是该稿件的指定审稿人，无法提交评审意见");
         }
-        Review review = reviewMapper.dtoToEntity(reviewDTO);
-        AuthorProfile reviewer = authorProfileRepo.findById(SecurityUtil.getCurrentUserId())
-                .orElseThrow(() -> new BusinessException(HttpStatus.BAD_REQUEST, "审稿人资料不存在"));
-        review.setReviewer(reviewer);
-        Review savedReview = reviewService.finishedReview(latestProcess.getId(), review, attachmentFiles);
+        ReviewVO savedReview = reviewService.finishedReview(latestProcess.getId(), reviewDTO, attachmentFiles);
+        // 系统指定一个编辑继续后续流程
+        manuscriptProcessService.addEditorialReviewProcess(
+                editorService.assignToEditorialReview(manuscriptId), manuscriptId);
         return ApiResponse.success(savedReview);
     }
 

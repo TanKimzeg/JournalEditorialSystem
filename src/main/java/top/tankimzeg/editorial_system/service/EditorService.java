@@ -32,7 +32,7 @@ public class EditorService {
                 .orElseThrow(() -> new RuntimeException("编辑不存在"));
     }
 
-    public User assignEditorToInitialReview(Long manuscriptId) {
+    public User assignToInitialReview(Long manuscriptId) {
         // 目前为简化逻辑，随机分配一个编辑
         List<EditorProfile> editors = getAllEditors();
         if (editors.isEmpty()) {
@@ -44,7 +44,19 @@ public class EditorService {
         }
     }
 
-    public User assignEditorToSelfRecommendation() {
+    public User assignToEditorialReview(Long manuscriptId) {
+        // 目前为简化逻辑，随机分配一个编辑
+        List<EditorProfile> editors = getAllEditors();
+        if (editors.isEmpty()) {
+            throw new RuntimeException("没有可用的编辑来处理稿件");
+        } else {
+            return userRepo.getReferenceById(
+                    editors.get((int) (Math.random() * editors.size())).getId()
+            );
+        }
+    }
+
+    public User assignToSelfRecommendation(Long applicantId) {
         // 目前为简化逻辑，随机分配一个编辑
         List<EditorProfile> editors = getAllEditors();
         if (editors.isEmpty()) {

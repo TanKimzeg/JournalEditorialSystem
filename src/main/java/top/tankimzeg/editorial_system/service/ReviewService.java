@@ -203,7 +203,7 @@ public class ReviewService {
                         // 按处理时间降序排序
                         (p1, p2) -> p2.getProcessedAt().compareTo(p1.getProcessedAt())
                 )
-                .map(p -> processMapper.entityToVO(p, null, null))
+                .map(p -> processMapper.entityToVO(p, null, reviewRepo))
                 .toList();
     }
 
@@ -213,17 +213,19 @@ public class ReviewService {
      * @param editorId 编辑ID
      * @return 待处理初审任务列表
      */
-    public List<ManuscriptProcess> getInitialReviewTasksByEditorId(Long editorId) {
+    public List<ManuscriptProcessVO> getInitialReviewTasksByEditorId(Long editorId) {
         List<ManuscriptProcess> tasks = manuscriptProcessRepo
                 .findManuscriptProcessByProcessedBy_Id(editorId);
         return tasks.stream().filter(
-                // 过滤出初审阶段且未完成的任务
-                p -> p.getStage().equals(ManuscriptProcess.Stage.INITIAL_REVIEW)
-                        && p.getFinishedAt() == null
-        ).sorted(
-                // 按处理时间降序排序
-                (p1, p2) -> p2.getProcessedAt().compareTo(p1.getProcessedAt())
-        ).toList();
+                        // 过滤出初审阶段且未完成的任务
+                        p -> p.getStage().equals(ManuscriptProcess.Stage.INITIAL_REVIEW)
+                                && p.getFinishedAt() == null
+                )
+                .sorted(
+                        // 按处理时间降序排序
+                        (p1, p2) -> p2.getProcessedAt().compareTo(p1.getProcessedAt())
+                )
+                .map(p -> processMapper.entityToVO(p, null, reviewRepo)).toList();
     }
 
 

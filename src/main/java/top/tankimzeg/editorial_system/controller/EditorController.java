@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 import top.tankimzeg.editorial_system.dto.request.EditorDecisionDTO;
 import top.tankimzeg.editorial_system.dto.response.ManuscriptProcessVO;
 import top.tankimzeg.editorial_system.entity.Manuscript;
@@ -88,15 +87,15 @@ public class EditorController {
 
     @Operation(summary = "编辑送审", description = "编辑将稿件送审给指定审稿人")
     @PostMapping("/send2Reviewer/{manuscriptId}")
-    public ApiResponse<ManuscriptProcess> editorSend2Reviewer(
+    public ApiResponse<ManuscriptProcessVO> editorSend2Reviewer(
             @PathVariable Long manuscriptId, @RequestParam Long reviewerId
     ) {
         if (!SecurityUtil.isEditor()) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "您不是注册编辑，无法送审");
         }
-        ManuscriptProcess reviewProcess = manuscriptProcessService.addReviewProcess(
+        ManuscriptProcessVO reviewProcess = manuscriptProcessService.addReviewProcess(
                 userService.getUserById(reviewerId).orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.BAD_REQUEST)
+                        () -> new BusinessException(HttpStatus.BAD_REQUEST, "指定的审稿人不存在")
                 ), manuscriptId
         );
         return ApiResponse.success(reviewProcess);
@@ -104,18 +103,34 @@ public class EditorController {
 
     @Operation(summary = "编辑送修订", description = "编辑将稿件送回作者进行修订")
     @PostMapping("/send2Author/{manuscriptId}")
-    public ApiResponse<ManuscriptProcess> editorSend2Author(
+    public ApiResponse<ManuscriptProcessVO> editorSend2Author(
             @PathVariable Long manuscriptId, @RequestBody String comment
-    ){
+    ) {
         if (!SecurityUtil.isEditor()) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "您不是注册编辑，无法送修订");
         }
-        ManuscriptProcess revisionProcess = manuscriptProcessService.addRevisionProcess(
+        ManuscriptProcessVO revisionProcess = manuscriptProcessService.addRevisionProcess(
                 manuscriptService.getManuscriptById(manuscriptId).getAuthor(),
                 manuscriptId,
                 comment
         );
         return ApiResponse.success(revisionProcess);
+    }
+
+    @Operation(summary = "进入最终决策阶段", description = "编辑将稿件流程推进到最终决策阶段")
+    @PostMapping("/toFinalDecision/{manuscriptId}")
+    public ApiResponse<ManuscriptProcessVO> editorToFinalDecision(
+            @PathVariable Long manuscriptId, @RequestParam Long editorId
+    ) {
+        if (!SecurityUtil.isEditor()) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "您不是注册编辑，无法进入最终决策阶段");
+        }
+        ManuscriptProcessVO finalDecisionProcess = manuscriptProcessService.addFinalDecisionProcess(
+                userService.getUserById(editorId).orElseThrow(
+                        () -> new BusinessException(HttpStatus.BAD_REQUEST, "指定的主编不存在")
+                ), manuscriptId
+        );
+        return ApiResponse.success(finalDecisionProcess);
     }
 
     @Operation(summary = "主编查询待决稿件", description = "主编查询待决策的稿件列表")
@@ -132,7 +147,7 @@ public class EditorController {
 
     @Operation(summary = "编辑查询待初审稿件", description = "编辑查询待初审的稿件列表")
     @GetMapping("/initialReviewManuscripts")
-    public ApiResponse<List<ManuscriptProcess>> getEditorInitialReviewManuscripts() {
+    public ApiResponse<List<ManuscriptProcessVO>> getEditorInitialReviewManuscripts() {
         if (!SecurityUtil.isEditor()) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "您不是注册编辑，无法查看待初审稿件");
         }

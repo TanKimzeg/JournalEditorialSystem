@@ -60,7 +60,7 @@ public class ManuscriptController {
             throw new BusinessException(HttpStatus.FORBIDDEN, "您不是注册作者，无法提交稿件");
         }
         ManuscriptVO savedManuscriptVO = manuscriptService.submitManuscript(manuscriptDTO, authorId, attachments);
-        User assignedEditor = editorService.assignEditorToInitialReview(savedManuscriptVO.getId());
+        User assignedEditor = editorService.assignToInitialReview(savedManuscriptVO.getId());
         manuscriptProcessService.addSubmissionProcess(assignedEditor, savedManuscriptVO.getId());
         return ApiResponse.success(savedManuscriptVO);
     }

@@ -28,7 +28,7 @@ public class SelfRecommendation {
 
     public enum Status {
         PENDING,
-        APPROVED,
+        ACCEPTED,
         REJECTED
     }
 

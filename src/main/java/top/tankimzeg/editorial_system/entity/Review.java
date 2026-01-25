@@ -27,7 +27,7 @@ public class Review {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reviewer_id", nullable = false)
-    private AuthorProfile reviewer;        // 审稿人
+    private User reviewer;        // 审稿人
 
     @Enumerated(EnumType.STRING)
     private ReviewDecision decision;      // 审稿决定

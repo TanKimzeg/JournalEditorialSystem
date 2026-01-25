@@ -30,6 +30,7 @@ public class SelfRecommendationService {
     private SelfRecommendationRepo selfRecommendationRepo;
 
     private static final SelfRecommendationMapper selfReccomendationMapper = SelfRecommendationMapper.INSTANCE;
+    private static final SelfRecommendationMapper selfRecommendationMapper = SelfRecommendationMapper.INSTANCE;
 
     /**
      * 作者提交自荐申请
@@ -42,11 +43,11 @@ public class SelfRecommendationService {
     public SelfRecommendationVO apply(User author, String applyReason) {
         SelfRecommendation selfRecommendation = new SelfRecommendation();
         selfRecommendation.setApplicant(author);
-        User editor = editorService.assignEditorToSelfRecommendation();
+        User editor = editorService.assignToSelfRecommendation(author.getId());
         selfRecommendation.setApprover(editor);
         selfRecommendation.setStatus(SelfRecommendation.Status.PENDING);
         selfRecommendation.setApplyReason(applyReason);
-        return selfReccomendationMapper.entityToVO(
+        return selfRecommendationMapper.entityToVO(
                 selfRecommendationRepo.save(selfRecommendation)
         );
     }
@@ -64,16 +65,15 @@ public class SelfRecommendationService {
             Long recommendationId, boolean approved, String comment) {
         SelfRecommendation selfRecommendation = selfRecommendationRepo.findById(recommendationId)
                 .orElseThrow(() -> new RuntimeException("自荐申请不存在"));
-        selfRecommendation.setStatus(approved ? SelfRecommendation.Status.APPROVED : SelfRecommendation.Status.REJECTED);
+        selfRecommendation.setStatus(approved ? SelfRecommendation.Status.ACCEPTED : SelfRecommendation.Status.REJECTED);
         selfRecommendation.setComments(comment);
         if (approved) {
             User upgradeAuthor = userRepo.findById(selfRecommendation.getApplicant().getId()).orElseThrow();
             upgradeAuthor.setRole(User.Role.REVIEWER);
             userRepo.save(upgradeAuthor);
         }
-        return selfReccomendationMapper.entityToVO(
-                selfRecommendationRepo.save(selfRecommendation)
-        );
+        SelfRecommendation savedEntity = selfRecommendationRepo.save(selfRecommendation);
+        return selfRecommendationMapper.entityToVO(savedEntity);
     }
 
     /**
@@ -90,7 +90,7 @@ public class SelfRecommendationService {
                 ).sorted(
                         // 按申请时间降序排序
                         (r1, r2) -> r2.getRequestedAt().compareTo(r1.getRequestedAt())
-                ).map(selfReccomendationMapper::entityToVO)
+                ).map(selfRecommendationMapper::entityToVO)
                 .toList();
     }
 
@@ -105,7 +105,7 @@ public class SelfRecommendationService {
                 .stream().sorted(
                         // 按申请时间降序排序
                         (r1, r2) -> r2.getRequestedAt().compareTo(r1.getRequestedAt())
-                ).map(selfReccomendationMapper::entityToVO)
+                ).map(selfRecommendationMapper::entityToVO)
                 .toList();
     }
 

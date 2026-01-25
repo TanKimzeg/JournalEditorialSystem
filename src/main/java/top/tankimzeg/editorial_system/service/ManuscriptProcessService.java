@@ -3,9 +3,13 @@ package top.tankimzeg.editorial_system.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.tankimzeg.editorial_system.dto.response.ManuscriptProcessVO;
 import top.tankimzeg.editorial_system.entity.*;
+import top.tankimzeg.editorial_system.mapper.ManuscriptProcessMapper;
 import top.tankimzeg.editorial_system.repository.ManuscriptProcessRepo;
 import top.tankimzeg.editorial_system.repository.ManuscriptRepo;
+import top.tankimzeg.editorial_system.repository.ReviewRepo;
+import top.tankimzeg.editorial_system.repository.RevisionRepo;
 
 /**
  * @author Kim
@@ -21,6 +25,14 @@ public class ManuscriptProcessService {
     @Autowired
     private ManuscriptRepo manuscriptRepo;
 
+    @Autowired
+    private ReviewRepo reviewRepo;
+
+    @Autowired
+    private RevisionRepo revisionRepo;
+
+    private static final ManuscriptProcessMapper processMapper = ManuscriptProcessMapper.INSTANCE;
+
     /**
      * 添加评审流程记录，稿件进入评审状态。分配审稿人时调用此方法。
      *
@@ -29,7 +41,7 @@ public class ManuscriptProcessService {
      * @return 稿件流程
      */
     @Transactional
-    public ManuscriptProcess addReviewProcess(User reviewer, Long manuscriptId) {
+    public ManuscriptProcessVO addReviewProcess(User reviewer, Long manuscriptId) {
         Manuscript manuscript = manuscriptRepo.findById(manuscriptId)
                 .orElseThrow(() -> new RuntimeException("稿件不存在"));
         manuscript.setStatus(Manuscript.ManuscriptStatus.UNDER_REVIEW);
@@ -39,7 +51,8 @@ public class ManuscriptProcessService {
         process.setManuscript(manuscript);
         process.setStage(ManuscriptProcess.Stage.PEER_REVIEW);
         process.setProcessedBy(reviewer);
-        return manuscriptProcessRepo.save(process);
+        ManuscriptProcess saved = manuscriptProcessRepo.save(process);
+        return processMapper.entityToVO(saved, null, reviewRepo);
     }
 
     /**
@@ -50,7 +63,7 @@ public class ManuscriptProcessService {
      * @return 稿件流程
      */
     @Transactional
-    public ManuscriptProcess addRevisionProcess(User author, Long manuscriptId, String comment) {
+    public ManuscriptProcessVO addRevisionProcess(User author, Long manuscriptId, String comment) {
         Manuscript manuscript = manuscriptRepo.findById(manuscriptId)
                 .orElseThrow(() -> new RuntimeException("稿件不存在"));
         manuscript.setStatus(Manuscript.ManuscriptStatus.UNDER_REVISION);
@@ -61,7 +74,8 @@ public class ManuscriptProcessService {
         process.setStage(ManuscriptProcess.Stage.REVISION);
         process.setProcessedBy(author);
         process.setComments(comment);
-        return manuscriptProcessRepo.save(process);
+        ManuscriptProcess saved = manuscriptProcessRepo.save(process);
+        return processMapper.entityToVO(saved, revisionRepo, null);
     }
 
     /**
@@ -72,7 +86,7 @@ public class ManuscriptProcessService {
      * @return 稿件流程
      */
     @Transactional
-    public ManuscriptProcess addSubmissionProcess(User editor, Long manuscriptId) {
+    public ManuscriptProcessVO addSubmissionProcess(User editor, Long manuscriptId) {
         Manuscript manuscript = manuscriptRepo.findById(manuscriptId)
                 .orElseThrow(() -> new RuntimeException("稿件不存在"));
 
@@ -80,7 +94,8 @@ public class ManuscriptProcessService {
         process.setManuscript(manuscript);
         process.setStage(ManuscriptProcess.Stage.INITIAL_REVIEW);
         process.setProcessedBy(editor);
-        return manuscriptProcessRepo.save(process);
+        ManuscriptProcess saved = manuscriptProcessRepo.save(process);
+        return processMapper.entityToVO(saved, null, null);
     }
 
     /**
@@ -91,7 +106,7 @@ public class ManuscriptProcessService {
      * @return 稿件流程
      */
     @Transactional
-    public ManuscriptProcess addFinalDecisionProcess(User editor, Long manuscriptId) {
+    public ManuscriptProcessVO addFinalDecisionProcess(User editor, Long manuscriptId) {
         Manuscript manuscript = manuscriptRepo.findById(manuscriptId)
                 .orElseThrow(() -> new RuntimeException("稿件不存在"));
         manuscript.setStatus(Manuscript.ManuscriptStatus.UNDER_REVIEW);
@@ -101,7 +116,8 @@ public class ManuscriptProcessService {
         process.setManuscript(manuscript);
         process.setStage(ManuscriptProcess.Stage.FINAL_DECISION);
         process.setProcessedBy(editor);
-        return manuscriptProcessRepo.save(process);
+        ManuscriptProcess saved = manuscriptProcessRepo.save(process);
+        return processMapper.entityToVO(saved, null, null);
     }
 
     /**
@@ -112,12 +128,13 @@ public class ManuscriptProcessService {
      * @return 稿件流程
      */
     @Transactional
-    public ManuscriptProcess addEditorialReviewProcess(User editor, Long manuscriptId) {
+    public ManuscriptProcessVO addEditorialReviewProcess(User editor, Long manuscriptId) {
         ManuscriptProcess process = new ManuscriptProcess();
         process.setManuscript(manuscriptRepo.findById(manuscriptId)
                 .orElseThrow(() -> new RuntimeException("稿件不存在")));
         process.setStage(ManuscriptProcess.Stage.EDITORIAL_REVIEW);
         process.setProcessedBy(editor);
-        return manuscriptProcessRepo.save(process);
+        ManuscriptProcess saved = manuscriptProcessRepo.save(process);
+        return processMapper.entityToVO(saved, null, null);
     }
 }
