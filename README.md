@@ -72,7 +72,7 @@ mvn spring-boot:run
 
 ## 接口文档
 
-- Knife4j UI：`http://localhost:8080/swagger-ui.html`
+- Knife4j UI：`http://localhost:8080/doc.html`
 
 ## 许可证
 
@@ -81,3 +81,4 @@ Apache License 2.0
 ## 变更日志
 
 - 0.1.0：首个预览版，实现稿件采编系统核心功能
+- 0.1.1：修复了部分接口的逻辑和返回视图
