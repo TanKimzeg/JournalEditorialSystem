@@ -14,7 +14,7 @@ import top.tankimzeg.editorial_system.entity.Review;
  * @date 2026/1/23 18:54
  * @description 评审记录映射器
  */
-@Mapper
+@Mapper(imports = {Review.ReviewDecision.class})
 public interface ReviewRecordMapper {
 
     ReviewRecordMapper INSTANCE = Mappers.getMapper(ReviewRecordMapper.class);
@@ -23,8 +23,8 @@ public interface ReviewRecordMapper {
     @Mapping(target = "processId", source = "process.id")
     @Mapping(target = "manuscriptId", source = "process.manuscript.id")
     @Mapping(target = "manuscriptTitle", source = "process.manuscript.title")
-    @Mapping(target = "reviewerId", source = "reviewer.author.id")
-    @Mapping(target = "reviewerName", expression = "java(entity.getReviewer().getAuthor().getRealName() != null ? entity.getReviewer().getAuthor().getRealName() : entity.getReviewer().getAuthor().getUsername())")
+    @Mapping(target = "reviewerId", source = "reviewer.id")
+    @Mapping(target = "reviewerName", source = "reviewer.realName")
     @Mapping(target = "decision", expression = "java(entity.getDecision() != null ? entity.getDecision().name() : null)")
     @Mapping(target = "attachmentIds", expression = "java(entity.getAttachments().stream().map(att -> att.getId()).toList())")
     ReviewVO entityToVO(Review entity);
@@ -37,5 +37,6 @@ public interface ReviewRecordMapper {
     @Mapping(target = "attachments", ignore = true)
     @Mapping(target = "finishedAt", ignore = true)
     @Mapping(target = "reviewedAt", ignore = true)
+    @Mapping(target = "decision", expression = "java(dto.getDecision() != null ? Review.ReviewDecision.valueOf(dto.getDecision()) : null)")
     Review dtoToEntity(ReviewDTO dto);
 }

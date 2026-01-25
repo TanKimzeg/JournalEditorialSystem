@@ -1,7 +1,6 @@
 package top.tankimzeg.editorial_system.dto.request;
 
 import lombok.Data;
-import top.tankimzeg.editorial_system.entity.Review;
 
 /**
  * @author Kim
@@ -10,6 +9,6 @@ import top.tankimzeg.editorial_system.entity.Review;
  */
 @Data
 public class ReviewDTO {
-    private Review.ReviewDecision decision;
+    private String decision;
     private String comments;
 }

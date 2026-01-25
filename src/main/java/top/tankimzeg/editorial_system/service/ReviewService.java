@@ -1,14 +1,20 @@
 package top.tankimzeg.editorial_system.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import top.tankimzeg.editorial_system.dto.request.ReviewDTO;
 import top.tankimzeg.editorial_system.dto.response.ManuscriptProcessVO;
+import top.tankimzeg.editorial_system.dto.response.ReviewVO;
 import top.tankimzeg.editorial_system.entity.Manuscript;
 import top.tankimzeg.editorial_system.entity.ManuscriptProcess;
 import top.tankimzeg.editorial_system.entity.Review;
+import top.tankimzeg.editorial_system.events.FinishedInitialReviewEvent;
+import top.tankimzeg.editorial_system.events.FinishedReviewDecisionEvent;
 import top.tankimzeg.editorial_system.mapper.ManuscriptProcessMapper;
+import top.tankimzeg.editorial_system.mapper.ReviewRecordMapper;
 import top.tankimzeg.editorial_system.repository.ManuscriptProcessRepo;
 import top.tankimzeg.editorial_system.repository.ManuscriptRepo;
 import top.tankimzeg.editorial_system.repository.ReviewRepo;
@@ -37,22 +43,29 @@ public class ReviewService {
     @Autowired
     private FileStorageService fileStorageService;
 
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
     private static final ManuscriptProcessMapper processMapper = ManuscriptProcessMapper.INSTANCE;
+
+    private static final ReviewRecordMapper reviewMapper = ReviewRecordMapper.INSTANCE;
 
     /**
      * 完成评审并保存评审意见，审稿人完成评审后调用此方法
      *
      * @param processId 稿件处理流程ID
-     * @param review    评审意见
+     * @param reviewDTO 评审意见
      * @return 更新后的稿件处理流程记录
      */
     @Transactional
-    public Review finishedReview(Long processId, Review review, List<MultipartFile> files) {
+    public ReviewVO finishedReview(Long processId, ReviewDTO reviewDTO, List<MultipartFile> files) {
         // 获取最新一条稿件处理流程记录，即分配评审的记录
         ManuscriptProcess process = manuscriptProcessRepo.getReferenceById(processId);
         if (!process.getStage().equals(ManuscriptProcess.Stage.PEER_REVIEW))
             throw new RuntimeException("当前流程阶段不允许审稿专家完成评审");
 
+        Review review = reviewMapper.dtoToEntity(reviewDTO);
+        review.setReviewer(process.getProcessedBy());
         process.setComments(review.getComments());
         manuscriptProcessRepo.save(process);
         // 关联评审记录和稿件处理流程
@@ -71,7 +84,7 @@ public class ReviewService {
         manuscriptRepo.save(manuscript);
         // 保存稿件处理流程记录
         manuscriptProcessRepo.save(process);
-        return saved;
+        return reviewMapper.entityToVO(saved);
     }
 
     /**
@@ -94,12 +107,15 @@ public class ReviewService {
                 // 更新稿件状态为最终决定状态
                 Manuscript manuscript = process.getManuscript();
                 manuscript.setStatus(finalDecision);
-                manuscriptRepo.save(manuscript);
+                Manuscript saved = manuscriptRepo.save(manuscript);
 
                 // 更新稿件处理流程记录
                 process.setComments(comment);
                 process.setFinishedAt(LocalDateTime.now());
-                return processMapper.entityToVO(manuscriptProcessRepo.save(process), null, null);
+                ManuscriptProcessVO vo = processMapper.entityToVO(manuscriptProcessRepo.save(process), null, null);
+                // 发布最终决定完成事件，通知作者
+                eventPublisher.publishEvent(new FinishedReviewDecisionEvent(saved, reviewRepo.findReviewByProcessId(processId)));
+                return vo;
             }
             default -> throw new RuntimeException("最终决定只能是接受或拒绝");
         }
@@ -125,7 +141,9 @@ public class ReviewService {
                 // 更新稿件状态为初审决定状态
                 Manuscript manuscript = process.getManuscript();
                 manuscript.setStatus(initialDecision);
-                manuscriptRepo.save(manuscript);
+                Manuscript saved = manuscriptRepo.save(manuscript);
+                // 发布初审完成事件，通知作者缴费
+                eventPublisher.publishEvent(new FinishedInitialReviewEvent(saved));
 
                 // 更新稿件处理流程记录
                 process.setComments(comment);
@@ -134,10 +152,6 @@ public class ReviewService {
             }
             default -> throw new RuntimeException("初审决定只能是送审或拒绝");
         }
-    }
-
-    public Review getReviewByProcessId(Long processId) {
-        return reviewRepo.findReviewByProcessId(processId);
     }
 
     /**

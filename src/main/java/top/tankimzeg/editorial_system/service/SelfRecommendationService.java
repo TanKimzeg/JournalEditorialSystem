@@ -1,11 +1,13 @@
 package top.tankimzeg.editorial_system.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.tankimzeg.editorial_system.dto.response.SelfRecommendationVO;
 import top.tankimzeg.editorial_system.entity.SelfRecommendation;
 import top.tankimzeg.editorial_system.entity.User;
+import top.tankimzeg.editorial_system.events.SelfRecommendationApprovedEvent;
 import top.tankimzeg.editorial_system.mapper.SelfRecommendationMapper;
 import top.tankimzeg.editorial_system.repository.SelfRecommendationRepo;
 import top.tankimzeg.editorial_system.repository.UserRepo;
@@ -29,7 +31,9 @@ public class SelfRecommendationService {
     @Autowired
     private SelfRecommendationRepo selfRecommendationRepo;
 
-    private static final SelfRecommendationMapper selfReccomendationMapper = SelfRecommendationMapper.INSTANCE;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
     private static final SelfRecommendationMapper selfRecommendationMapper = SelfRecommendationMapper.INSTANCE;
 
     /**
@@ -47,9 +51,9 @@ public class SelfRecommendationService {
         selfRecommendation.setApprover(editor);
         selfRecommendation.setStatus(SelfRecommendation.Status.PENDING);
         selfRecommendation.setApplyReason(applyReason);
-        return selfRecommendationMapper.entityToVO(
-                selfRecommendationRepo.save(selfRecommendation)
-        );
+        SelfRecommendation saved = selfRecommendationRepo.save(selfRecommendation);
+        eventPublisher.publishEvent(saved);
+        return selfRecommendationMapper.entityToVO(saved);
     }
 
     /**
@@ -73,6 +77,7 @@ public class SelfRecommendationService {
             userRepo.save(upgradeAuthor);
         }
         SelfRecommendation savedEntity = selfRecommendationRepo.save(selfRecommendation);
+        eventPublisher.publishEvent(new SelfRecommendationApprovedEvent(savedEntity));
         return selfRecommendationMapper.entityToVO(savedEntity);
     }
 

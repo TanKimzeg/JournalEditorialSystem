@@ -8,14 +8,11 @@ import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 import top.tankimzeg.editorial_system.dto.request.ReviewDTO;
 import top.tankimzeg.editorial_system.dto.response.ManuscriptProcessVO;
 import top.tankimzeg.editorial_system.dto.response.ReviewVO;
 import top.tankimzeg.editorial_system.entity.ManuscriptProcess;
 import top.tankimzeg.editorial_system.exception.BusinessException;
-import top.tankimzeg.editorial_system.mapper.ReviewRecordMapper;
-import top.tankimzeg.editorial_system.repository.AuthorProfileRepo;
 import top.tankimzeg.editorial_system.service.*;
 import top.tankimzeg.editorial_system.utils.SecurityUtil;
 import top.tankimzeg.editorial_system.utils.ApiResponse;
@@ -34,16 +31,10 @@ import java.util.List;
 public class ReviewerController {
 
     @Autowired
-    private UserService userService;
-
-    @Autowired
     private ManuscriptService manuscriptService;
 
     @Autowired
     private ReviewService reviewService;
-
-    @Autowired
-    private AuthorProfileRepo authorProfileRepo;
 
     @Autowired
     private ManuscriptProcessService manuscriptProcessService;
@@ -63,11 +54,8 @@ public class ReviewerController {
         }
         ManuscriptProcess latestProcess =
                 manuscriptService.getLatestManuscriptProcess(manuscriptId);
-        if (!latestProcess.getProcessedBy().equals(
-                userService.getUserById(SecurityUtil.getCurrentUserId()).orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.FORBIDDEN)
-                )
-        )) {
+        if (!latestProcess.getProcessedBy().getId()
+                .equals(SecurityUtil.getCurrentUserId())) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "您不是该稿件的指定审稿人，无法提交评审意见");
         }
         ReviewVO savedReview = reviewService.finishedReview(latestProcess.getId(), reviewDTO, attachmentFiles);

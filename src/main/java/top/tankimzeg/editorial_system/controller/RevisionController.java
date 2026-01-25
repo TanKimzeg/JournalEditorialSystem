@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import top.tankimzeg.editorial_system.dto.request.RevisionDTO;
 import top.tankimzeg.editorial_system.dto.response.ManuscriptProcessVO;
+import top.tankimzeg.editorial_system.dto.response.RevisionVO;
 import top.tankimzeg.editorial_system.entity.ManuscriptProcess;
-import top.tankimzeg.editorial_system.entity.Revision;
 import top.tankimzeg.editorial_system.exception.BusinessException;
 import top.tankimzeg.editorial_system.mapper.RevisionRecordMapper;
 import top.tankimzeg.editorial_system.service.ManuscriptService;
@@ -46,26 +46,24 @@ public class RevisionController {
 
     @Operation(summary = "提交修订", description = "作者提交修订")
     @PostMapping(value = "/{manuscriptId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<Revision> submitRevision(
+    public ApiResponse<RevisionVO> submitRevision(
             @PathVariable Long manuscriptId,
             @RequestPart(name = "metadata") RevisionDTO revisionDTO,
             @RequestPart(name = "files", required = false) List<MultipartFile> attachmentFiles
     ) {
-        if (!manuscriptService.getManuscriptById(manuscriptId).getAuthor().getId()
-                .equals(SecurityUtil.getCurrentUserId())) {
-            throw new BusinessException(HttpStatus.FORBIDDEN, "您无权提交此稿件的修订");
-        }
-        Revision revision = revisionMapper.dtoToEntity(revisionDTO);
-        revision.setAuthor(userService.getUserById(SecurityUtil.getCurrentUserId()).orElseThrow(
-                () -> new BusinessException(HttpStatus.BAD_REQUEST, "您不是注册作者，无法提交修订"))
-        );
         ManuscriptProcess latestProcess =
                 manuscriptService.getLatestManuscriptProcess(manuscriptId);
+        if (!manuscriptService.getManuscriptById(manuscriptId).getAuthor().getId()
+                .equals(SecurityUtil.getCurrentUserId()) ||
+                !latestProcess.getProcessedBy().getId()
+                        .equals(SecurityUtil.getCurrentUserId())) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "您无权提交此稿件的修订");
+        }
         if (!latestProcess.getStage().equals(ManuscriptProcess.Stage.REVISION)) {
             throw new BusinessException(HttpStatus.BAD_REQUEST,
                     "当前稿件不处于修订阶段，无法提交修订");
         }
-        Revision savedRevision = revisionService.finishedRevision(latestProcess.getId(), revision, attachmentFiles);
+        RevisionVO savedRevision = revisionService.finishedRevision(latestProcess.getId(), revisionDTO, attachmentFiles);
         return ApiResponse.success(savedRevision);
     }
 

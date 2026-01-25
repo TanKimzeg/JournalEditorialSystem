@@ -1,10 +1,14 @@
 package top.tankimzeg.editorial_system.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.tankimzeg.editorial_system.dto.response.ManuscriptProcessVO;
 import top.tankimzeg.editorial_system.entity.*;
+import top.tankimzeg.editorial_system.events.EditorTaskEvent;
+import top.tankimzeg.editorial_system.events.ReviewTaskEvent;
+import top.tankimzeg.editorial_system.events.RevisionTaskEvent;
 import top.tankimzeg.editorial_system.mapper.ManuscriptProcessMapper;
 import top.tankimzeg.editorial_system.repository.ManuscriptProcessRepo;
 import top.tankimzeg.editorial_system.repository.ManuscriptRepo;
@@ -31,6 +35,9 @@ public class ManuscriptProcessService {
     @Autowired
     private RevisionRepo revisionRepo;
 
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
     private static final ManuscriptProcessMapper processMapper = ManuscriptProcessMapper.INSTANCE;
 
     /**
@@ -52,6 +59,8 @@ public class ManuscriptProcessService {
         process.setStage(ManuscriptProcess.Stage.PEER_REVIEW);
         process.setProcessedBy(reviewer);
         ManuscriptProcess saved = manuscriptProcessRepo.save(process);
+        // 触发评审任务事件，通知审稿人
+        eventPublisher.publishEvent(new ReviewTaskEvent(saved));
         return processMapper.entityToVO(saved, null, reviewRepo);
     }
 
@@ -75,6 +84,8 @@ public class ManuscriptProcessService {
         process.setProcessedBy(author);
         process.setComments(comment);
         ManuscriptProcess saved = manuscriptProcessRepo.save(process);
+        // 触发修订任务事件，通知作者
+        eventPublisher.publishEvent(new RevisionTaskEvent(process));
         return processMapper.entityToVO(saved, revisionRepo, null);
     }
 
@@ -95,6 +106,8 @@ public class ManuscriptProcessService {
         process.setStage(ManuscriptProcess.Stage.INITIAL_REVIEW);
         process.setProcessedBy(editor);
         ManuscriptProcess saved = manuscriptProcessRepo.save(process);
+        // 触发初审任务事件，通知编辑
+        eventPublisher.publishEvent(new EditorTaskEvent(process));
         return processMapper.entityToVO(saved, null, null);
     }
 
@@ -117,6 +130,8 @@ public class ManuscriptProcessService {
         process.setStage(ManuscriptProcess.Stage.FINAL_DECISION);
         process.setProcessedBy(editor);
         ManuscriptProcess saved = manuscriptProcessRepo.save(process);
+        // 触发最终决定任务事件，通知编辑
+        eventPublisher.publishEvent(new EditorTaskEvent(saved));
         return processMapper.entityToVO(saved, null, null);
     }
 
@@ -135,6 +150,8 @@ public class ManuscriptProcessService {
         process.setStage(ManuscriptProcess.Stage.EDITORIAL_REVIEW);
         process.setProcessedBy(editor);
         ManuscriptProcess saved = manuscriptProcessRepo.save(process);
+        // 触发编辑评审任务事件，通知编辑
+        eventPublisher.publishEvent(new EditorTaskEvent(saved));
         return processMapper.entityToVO(saved, null, null);
     }
 }

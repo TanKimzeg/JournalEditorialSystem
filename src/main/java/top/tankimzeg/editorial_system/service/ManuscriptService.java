@@ -1,6 +1,7 @@
 package top.tankimzeg.editorial_system.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -11,6 +12,7 @@ import top.tankimzeg.editorial_system.entity.ManuscriptAttachment;
 import top.tankimzeg.editorial_system.entity.Manuscript;
 import top.tankimzeg.editorial_system.entity.ManuscriptProcess;
 import top.tankimzeg.editorial_system.entity.User;
+import top.tankimzeg.editorial_system.events.ManuscriptSubmittedEvent;
 import top.tankimzeg.editorial_system.mapper.ManuscriptMapper;
 import top.tankimzeg.editorial_system.mapper.ManuscriptProcessMapper;
 import top.tankimzeg.editorial_system.repository.*;
@@ -45,6 +47,9 @@ public class ManuscriptService {
     @Autowired
     private ManuscriptProcessRepo manuscriptProcessRepo;
 
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
     private static final ManuscriptMapper manuscriptMapper = ManuscriptMapper.INSTANCE;
     private static final ManuscriptProcessMapper manuscriptProcessMapper = ManuscriptProcessMapper.INSTANCE;
 
@@ -56,7 +61,17 @@ public class ManuscriptService {
         manuscript.setAuthor(author);
         manuscript.setStatus(Manuscript.ManuscriptStatus.SUBMITTED);
 
-        return saveManuscriptAndAttachments(attachmentFiles, manuscript);
+        Manuscript savedEntity = manuscriptRepo.save(manuscript);
+        if (attachmentFiles != null && !attachmentFiles.isEmpty()) {
+            try {
+                fileStorageService.store(attachmentFiles, savedEntity);
+            } catch (Exception e) {
+                throw new RuntimeException("文件保存失败: " + e.getMessage());
+            }
+        }
+        // publish event; handled AFTER_COMMIT by NotificationEventListener
+        eventPublisher.publishEvent(new ManuscriptSubmittedEvent(savedEntity));
+        return manuscriptMapper.entityToVO(savedEntity);
     }
 
     public List<ManuscriptVO> getManuscriptsByAuthorId(Long authorId) {
