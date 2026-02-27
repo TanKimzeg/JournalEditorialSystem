@@ -31,7 +31,8 @@ public class User {
     public enum Role {
         AUTHOR,
         REVIEWER,
-        EDITOR
+        EDITOR,
+        ADMIN
     }
 
     @Enumerated(EnumType.STRING)
