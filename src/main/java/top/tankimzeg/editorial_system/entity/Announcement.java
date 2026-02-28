@@ -31,6 +31,19 @@ public class Announcement {
     @Column(nullable = false)
     private String content;
 
+    /**
+     * 简要摘要，用于列表页或 SEO
+     */
+    @Column(length = 300)
+    private String summary;
+
+
+    /**
+     * 是否置顶
+     */
+    @Column(nullable = false)
+    private boolean pinned = false;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Status status = Status.DRAFT;

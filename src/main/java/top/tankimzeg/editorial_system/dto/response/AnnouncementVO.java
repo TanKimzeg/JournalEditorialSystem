@@ -18,6 +18,16 @@ public class AnnouncementVO {
 
     private String content;
 
+    /**
+     * 公告摘要
+     */
+    private String summary;
+
+    /**
+     * 是否置顶
+     */
+    private Boolean pinned;
+
     private String status;
 
     private LocalDateTime publishedAt;
@@ -26,4 +36,3 @@ public class AnnouncementVO {
 
     private LocalDateTime updatedAt;
 }
-
