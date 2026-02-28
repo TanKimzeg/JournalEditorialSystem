@@ -18,6 +18,7 @@ import top.tankimzeg.editorial_system.mapper.ReviewRecordMapper;
 import top.tankimzeg.editorial_system.repository.ManuscriptProcessRepo;
 import top.tankimzeg.editorial_system.repository.ManuscriptRepo;
 import top.tankimzeg.editorial_system.repository.ReviewRepo;
+import top.tankimzeg.editorial_system.service.impl.ReviewAttachStorageService;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -41,7 +42,7 @@ public class ReviewService {
     private ReviewRepo reviewRepo;
 
     @Autowired
-    private FileStorageService fileStorageService;
+    private ReviewAttachStorageService fileStorageService;
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;

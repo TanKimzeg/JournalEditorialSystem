@@ -15,6 +15,7 @@ import top.tankimzeg.editorial_system.mapper.RevisionRecordMapper;
 import top.tankimzeg.editorial_system.repository.ManuscriptProcessRepo;
 import top.tankimzeg.editorial_system.repository.ManuscriptRepo;
 import top.tankimzeg.editorial_system.repository.RevisionRepo;
+import top.tankimzeg.editorial_system.service.impl.RevisionAttachmentStorageService;
 
 import java.io.IOException;
 import java.util.List;
@@ -37,7 +38,7 @@ public class RevisionService {
     private ManuscriptRepo manuscriptRepo;
 
     @Autowired
-    private FileStorageService fileStorageService;
+    private RevisionAttachmentStorageService fileStorageService;
 
     private static final ManuscriptProcessMapper processMapper = ManuscriptProcessMapper.INSTANCE;
 

@@ -19,7 +19,6 @@ import top.tankimzeg.editorial_system.entity.Manuscript;
 import top.tankimzeg.editorial_system.entity.User;
 import top.tankimzeg.editorial_system.exception.BusinessException;
 import top.tankimzeg.editorial_system.service.EditorService;
-import top.tankimzeg.editorial_system.service.FileStorageService;
 import top.tankimzeg.editorial_system.service.ManuscriptProcessService;
 import top.tankimzeg.editorial_system.service.ManuscriptService;
 import top.tankimzeg.editorial_system.utils.SecurityUtil;
@@ -45,10 +44,6 @@ public class ManuscriptController {
 
     @Autowired
     private EditorService editorService;
-
-    @Autowired
-    private FileStorageService fileStorageService;
-
 
     @Operation(summary = "提交稿件", description = "作者提交新的稿件")
     @PreAuthorize("hasRole('AUTHOR')")
@@ -170,15 +165,11 @@ public class ManuscriptController {
                         .equals(SecurityUtil.getCurrentUserId()))) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "您无权下载此附件");
         }
-        try {
-            byte[] data = fileStorageService.load(att.getAttachment().getStoragePath());
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=" + att.getAttachment().getFilename())
-                    .contentType(MediaType.parseMediaType(att.getAttachment().getContentType()))
-                    .body(data);
-        } catch (Exception e) {
-            throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "文件下载失败");
-        }
+        byte[] data = manuscriptService.downloadAttachment(att.getAttachment().getStoragePath());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=" + att.getAttachment().getFilename())
+                .contentType(MediaType.parseMediaType(att.getAttachment().getContentType()))
+                .body(data);
     }
 }

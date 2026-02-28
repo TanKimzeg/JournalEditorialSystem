@@ -16,8 +16,10 @@ import top.tankimzeg.editorial_system.events.ManuscriptSubmittedEvent;
 import top.tankimzeg.editorial_system.mapper.ManuscriptMapper;
 import top.tankimzeg.editorial_system.mapper.ManuscriptProcessMapper;
 import top.tankimzeg.editorial_system.repository.*;
+import top.tankimzeg.editorial_system.service.impl.ManuAttachmentStorageService;
 
 import java.util.List;
+
 /**
  * @author Kim
  * @date 2026/1/19 12:02
@@ -42,7 +44,7 @@ public class ManuscriptService {
     private ManuscriptAttachmentRepo manuscriptAttachmentRepo;
 
     @Autowired
-    private FileStorageService fileStorageService;
+    private ManuAttachmentStorageService fileStorageService;
 
     @Autowired
     private ManuscriptProcessRepo manuscriptProcessRepo;
@@ -78,8 +80,8 @@ public class ManuscriptService {
         List<Manuscript> manuscripts = manuscriptRepo.findByAuthorId(authorId);
         // 按提交时间降序排序
         return manuscripts.stream().sorted(
-                (m1, m2) -> m2.getSubmittedAt().compareTo(m1.getSubmittedAt())
-        )
+                        (m1, m2) -> m2.getSubmittedAt().compareTo(m1.getSubmittedAt())
+                )
                 .map(manuscriptMapper::entityToVO).toList();
     }
 
@@ -102,6 +104,14 @@ public class ManuscriptService {
             }
         }
         return manuscriptMapper.entityToVO(saved);
+    }
+
+    public byte[] downloadAttachment(String storagePath) {
+        try {
+            return fileStorageService.load(storagePath);
+        } catch (Exception e) {
+            throw new RuntimeException("文件下载失败：" + e.getMessage());
+        }
     }
 
     public Manuscript getManuscriptById(Long manuscriptId) {
