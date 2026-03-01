@@ -68,4 +68,4 @@ storage:
   picture:
     upload-dir: uploads/pictures
     max-size-bytes: 10485760 # 10MB
-    allowed-types: "image/jpeg,image/git,image/png,image/tiff,image/webp"
+    allowed-types: "image/jpeg,image/gif,image/png,image/tiff,image/webp"
