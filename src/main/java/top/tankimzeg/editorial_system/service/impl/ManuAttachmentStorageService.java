@@ -3,7 +3,6 @@ package top.tankimzeg.editorial_system.service.impl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import top.tankimzeg.editorial_system.entity.Attachment;
 import top.tankimzeg.editorial_system.entity.Manuscript;
@@ -16,10 +15,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @author Kim
@@ -46,12 +44,22 @@ public class ManuAttachmentStorageService implements FileStorageService<Manuscri
     @Override
     public String store(MultipartFile file, Manuscript saved) throws IOException {
         validateFile(file);
-        String storePath = createFile(file, saved.getId());
+        String storageKey = createFile(file, saved.getId());
         ManuscriptAttachment att = new ManuscriptAttachment();
         att.setManuscript(saved);
-        att.setAttachment(createAttachment(file, storePath));
+        att.setAttachment(createAttachment(file, storageKey));
         manuscriptAttachmentRepo.save(att);
-        return storePath;
+        return storageKey;
+    }
+
+    public byte[] load(String storageKey) throws IOException {
+        Path base = init();
+        Path normalizedBase = base.toAbsolutePath().normalize();
+        Path target = normalizedBase.resolve(storageKey).normalize();
+        if (!target.startsWith(normalizedBase)) {
+            throw new SecurityException("Invalid storage key: path traversal detected");
+        }
+        return Files.readAllBytes(target);
     }
 
     private Path init() throws IOException {
@@ -61,23 +69,27 @@ public class ManuAttachmentStorageService implements FileStorageService<Manuscri
     }
 
 
-    private Attachment createAttachment(MultipartFile file, String storagePath) {
+    private Attachment createAttachment(MultipartFile file, String storageKey) {
         Attachment attachment = new Attachment();
         attachment.setFilename(file.getOriginalFilename());
         attachment.setContentType(file.getContentType());
         attachment.setSize(file.getSize());
-        attachment.setStoragePath(storagePath);
+        attachment.setStoragePath(storageKey);
         return attachment;
     }
 
     private String createFile(MultipartFile file, Long id) throws IOException {
         Path base = init();
-        String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        String storedName = id + timestamp + "_" + originalFilename;
-        Path target = base.resolve(storedName);
+//        String original = file.getOriginalFilename();
+        String safeName = UUID.randomUUID().toString();
+        String storedName = "manuscript_" + id + "_" + safeName;
+        Path target = base.resolve(storedName).normalize();
+        if (!target.startsWith(base.toAbsolutePath().normalize())) {
+            throw new SecurityException("Invalid stored name produced by storage service");
+        }
         Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-        return target.toString();
+        // Only persist logical key relative to base directory
+        return storedName;
     }
 
     private void validateFile(MultipartFile file) {

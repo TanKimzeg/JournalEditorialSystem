@@ -2,7 +2,6 @@ package top.tankimzeg.editorial_system.service.impl;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import top.tankimzeg.editorial_system.service.FileStorageService;
 
@@ -11,10 +10,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @author Kim
@@ -22,7 +20,7 @@ import java.util.List;
  * @description 媒体文件存取实现类
  */
 @Service
-public class MediaStorageService implements FileStorageService<Object> {
+public class MediaStorageService implements FileStorageService<Void> {
     @Value("${storage.picture.upload-dir:uploads}")
     private String uploadDir;
 
@@ -30,27 +28,42 @@ public class MediaStorageService implements FileStorageService<Object> {
     private long maxSizeBytes;
 
     @Value("${storage.picture.allowed-types:*}")
-    private String allowedTypes; // comma separated, e.g. application/pdf,image/png,*
+    private String allowedTypes; // comma separated, e.g. image/png,image/jpeg,*
 
     @Override
-    public String store(MultipartFile file, Object saved) throws IOException {
+    public String store(MultipartFile file, Void ignored) throws IOException {
         validateFile(file);
         Path base = init();
-        String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        Path target = base.resolve(originalFilename + timestamp);
+//        String original = file.getOriginalFilename();
+        String safeName = UUID.randomUUID().toString();
+        String storedName = "media_" + safeName;
+        Path target = base.resolve(storedName).normalize();
+        if (!target.startsWith(base.toAbsolutePath().normalize())) {
+            throw new SecurityException("Invalid stored name produced by storage service");
+        }
         Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-        return target.toString();
+        // Only expose logical key relative to base directory
+        return storedName;
     }
 
     public String store(MultipartFile media) {
         try {
             return store(media, null);
         } catch (IOException e) {
-            throw new RuntimeException("文件保存失败：" + e.getMessage());
+            throw new RuntimeException("文件保存失败：" + e.getMessage(), e);
         }
     }
 
+    @Override
+    public byte[] load(String storageKey) throws IOException {
+        Path base = init();
+        Path normalizedBase = base.toAbsolutePath().normalize();
+        Path target = normalizedBase.resolve(storageKey).normalize();
+        if (!target.startsWith(normalizedBase)) {
+            throw new SecurityException("Invalid storage key: path traversal detected");
+        }
+        return Files.readAllBytes(target);
+    }
 
     private Path init() throws IOException {
         Path dir = Paths.get(uploadDir).toAbsolutePath().normalize();
@@ -82,5 +95,4 @@ public class MediaStorageService implements FileStorageService<Object> {
         if (allowed.contains("*")) return true;
         return contentType != null && allowed.stream().anyMatch(t -> t.equalsIgnoreCase(contentType));
     }
-
 }
