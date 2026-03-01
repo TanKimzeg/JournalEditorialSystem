@@ -1,9 +1,11 @@
 package top.tankimzeg.editorial_system.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import top.tankimzeg.editorial_system.entity.EditorProfile;
 import top.tankimzeg.editorial_system.entity.User;
+import top.tankimzeg.editorial_system.exception.BusinessException;
 import top.tankimzeg.editorial_system.repository.EditorProfileRepo;
 import top.tankimzeg.editorial_system.repository.UserRepo;
 
@@ -29,14 +31,14 @@ public class EditorService {
 
     public EditorProfile getEditorById(Long editorId) {
         return editorProfileRepo.findById(editorId)
-                .orElseThrow(() -> new RuntimeException("编辑不存在"));
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "编辑不存在"));
     }
 
     public User assignToInitialReview(Long manuscriptId) {
         // 目前为简化逻辑，随机分配一个编辑
         List<EditorProfile> editors = getAllEditors();
         if (editors.isEmpty()) {
-            throw new RuntimeException("没有可用的编辑来处理稿件");
+            throw new BusinessException(HttpStatus.CONFLICT, "没有可用的编辑来处理稿件");
         } else {
             return userRepo.getReferenceById(
                     editors.get((int) (Math.random() * editors.size())).getId()
@@ -48,7 +50,7 @@ public class EditorService {
         // 目前为简化逻辑，随机分配一个编辑
         List<EditorProfile> editors = getAllEditors();
         if (editors.isEmpty()) {
-            throw new RuntimeException("没有可用的编辑来处理稿件");
+            throw new BusinessException(HttpStatus.CONFLICT, "没有可用的编辑来处理稿件");
         } else {
             return userRepo.getReferenceById(
                     editors.get((int) (Math.random() * editors.size())).getId()
@@ -60,7 +62,7 @@ public class EditorService {
         // 目前为简化逻辑，随机分配一个编辑
         List<EditorProfile> editors = getAllEditors();
         if (editors.isEmpty()) {
-            throw new RuntimeException("没有可用的编辑来处理自荐申请");
+            throw new BusinessException(HttpStatus.CONFLICT, "没有可用的编辑来处理自荐申请");
         } else {
             return userRepo.getReferenceById(
                     editors.get((int) (Math.random() * editors.size())).getId()

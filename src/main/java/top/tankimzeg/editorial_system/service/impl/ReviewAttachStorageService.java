@@ -1,0 +1,120 @@
+package top.tankimzeg.editorial_system.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import top.tankimzeg.editorial_system.entity.Attachment;
+import top.tankimzeg.editorial_system.entity.Review;
+import top.tankimzeg.editorial_system.entity.ReviewAttachment;
+import top.tankimzeg.editorial_system.exception.BusinessException;
+import top.tankimzeg.editorial_system.repository.ReviewAttachmentRepo;
+import top.tankimzeg.editorial_system.service.FileStorageService;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * @author Kim
+ * @date 2026/2/27 22:55
+ * @description 审稿附件存取实现类
+ */
+@Service
+public class ReviewAttachStorageService implements FileStorageService<Review> {
+
+    @Value("${storage.attachments.upload-dir:uploads}")
+    private String uploadDir;
+
+    @Value("${storage.attachments.max-size-bytes:10485760}") // default 10MB
+    private long maxSizeBytes;
+
+    @Value("${storage.attachments.allowed-types:*}")
+    private String allowedTypes; // comma separated, e.g. application/pdf,image/png,*
+
+    @Autowired
+    private ReviewAttachmentRepo reviewAttachmentRepo;
+
+
+    @Override
+    public String store(MultipartFile file, Review saved) throws IOException {
+        validateFile(file);
+        String storageKey = createFile(file, saved.getId());
+        ReviewAttachment att = new ReviewAttachment();
+        att.setReview(saved);
+        att.setAttachment(createAttachment(file, storageKey));
+        reviewAttachmentRepo.save(att);
+        return storageKey;
+    }
+
+    public byte[] load(String storageKey) throws IOException {
+        Path base = init();
+        Path normalizedBase = base.toAbsolutePath().normalize();
+        Path target = normalizedBase.resolve(storageKey).normalize();
+        if (!target.startsWith(normalizedBase)) {
+            throw new SecurityException("Invalid storage key: path traversal detected");
+        }
+        return Files.readAllBytes(target);
+    }
+
+    private Path init() throws IOException {
+        Path dir = Paths.get(uploadDir).toAbsolutePath().normalize();
+        Files.createDirectories(dir);
+        return dir;
+    }
+
+
+    private Attachment createAttachment(MultipartFile file, String storageKey) {
+        Attachment attachment = new Attachment();
+        attachment.setFilename(file.getOriginalFilename());
+        attachment.setContentType(file.getContentType());
+        attachment.setSize(file.getSize());
+        attachment.setStoragePath(storageKey);
+        return attachment;
+    }
+
+    private String createFile(MultipartFile file, Long id) throws IOException {
+        Path base = init();
+//        String original = file.getOriginalFilename();
+        String safeName = UUID.randomUUID().toString();
+        String storedName = "review_" + id + "_" + safeName;
+        Path target = base.resolve(storedName).normalize();
+        if (!target.startsWith(base.toAbsolutePath().normalize())) {
+            throw new SecurityException("Invalid stored name produced by storage service");
+        }
+        Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+        return storedName;
+    }
+
+    private void validateFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "上传文件不能为空");
+        }
+        if (file.getSize() > maxSizeBytes) {
+            throw new BusinessException(HttpStatus.CONTENT_TOO_LARGE, "文件大小超过限制: " + maxSizeBytes + " bytes");
+        }
+        String contentType = file.getContentType();
+        if (!isAllowedType(contentType)) {
+            throw new BusinessException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "不支持的文件类型: " + contentType);
+        }
+    }
+
+    private boolean isAllowedType(String contentType) {
+        if (allowedTypes == null || allowedTypes.trim().isEmpty() || allowedTypes.trim().equals("*")) {
+            return true;
+        }
+        List<String> allowed = Arrays.stream(allowedTypes.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+        if (allowed.contains("*")) return true;
+        return contentType != null && allowed.stream().anyMatch(t -> t.equalsIgnoreCase(contentType));
+    }
+
+}

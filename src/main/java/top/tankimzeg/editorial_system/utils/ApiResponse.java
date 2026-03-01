@@ -35,16 +35,8 @@ public class ApiResponse<T> {
         return new ApiResponse<>(HttpStatus.OK, message, data);
     }
 
-    public static ApiResponse<?> failure(HttpStatus status, String message) {
-        return new ApiResponse<>(status, message, null);
-    }
-
     public static <T> ApiResponse<T> failure(HttpStatus status, String message, T data) {
         return new ApiResponse<>(status, message, data);
-    }
-
-    public static ApiResponse<?> failure(String message) {
-        return new ApiResponse<>(HttpStatus.BAD_REQUEST, message, null);
     }
 
     public static ApiResponse<?> fromException(BusinessException ex) {

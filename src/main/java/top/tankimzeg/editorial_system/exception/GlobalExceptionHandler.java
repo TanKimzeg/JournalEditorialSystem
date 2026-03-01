@@ -3,6 +3,7 @@ package top.tankimzeg.editorial_system.exception;
 import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -24,6 +25,7 @@ import java.util.Map;
  */
 @Hidden
 @RestControllerAdvice()
+@Slf4j
 public class GlobalExceptionHandler {
 
     // 处理业务异常
@@ -65,22 +67,26 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({AuthenticationException.class, BadCredentialsException.class})
     public ApiResponse<?> handleAuthenticationException(Exception ex) {
 
-        return ApiResponse.unauthorized("认证失败: " + ex.getMessage());
+        log.warn("Authentication failed", ex);
+        return ApiResponse.unauthorized("认证失败");
     }
 
     // 处理权限不足异常
     @ExceptionHandler(AccessDeniedException.class)
     public ApiResponse<?> handleAccessDeniedException(AccessDeniedException ex) {
 
-        return ApiResponse.forbidden("权限不足: " + ex.getMessage());
+        log.warn("Access denied", ex);
+        return ApiResponse.forbidden("权限不足");
     }
 
     // 处理参数类型不匹配异常
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ApiResponse<?> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
 
+        Class<?> requiredType = ex.getRequiredType();
+        String requiredTypeName = requiredType != null ? requiredType.getSimpleName() : "未知类型";
         String error = String.format("参数 '%s' 类型错误，期望类型: %s",
-                ex.getName(), ex.getRequiredType().getSimpleName());
+                ex.getName(), requiredTypeName);
 
         return ApiResponse.badRequest(error);
     }
@@ -89,6 +95,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ApiResponse<?> handleAllUncaughtException(Exception ex) {
 
-        return ApiResponse.internalServerError(ex.getMessage());
+        log.error("Unhandled exception caught by GlobalExceptionHandler", ex);
+        return ApiResponse.internalServerError("服务器内部错误，请稍后重试");
     }
 }

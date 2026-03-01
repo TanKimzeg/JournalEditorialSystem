@@ -1,11 +1,14 @@
 package top.tankimzeg.editorial_system.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import top.tankimzeg.editorial_system.entity.User;
+import top.tankimzeg.editorial_system.exception.BusinessException;
 import top.tankimzeg.editorial_system.repository.UserRepo;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -30,7 +33,10 @@ public class UserService {
         return userRepo.findById(id);
     }
 
-    public void deleteAuthor(Long id) {
+    public void deleteUserById(Long id) {
+        if (!userRepo.existsById(id)) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "用户不存在");
+        }
         userRepo.deleteById(id);
     }
 
@@ -42,4 +48,7 @@ public class UserService {
         return userRepo.existsUserByEmail(email);
     }
 
+    public List<User> getAllUsers() {
+        return userRepo.findAll();
+    }
 }

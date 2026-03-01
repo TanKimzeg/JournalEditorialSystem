@@ -1,6 +1,8 @@
 package top.tankimzeg.editorial_system.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -10,11 +12,13 @@ import top.tankimzeg.editorial_system.dto.response.RevisionVO;
 import top.tankimzeg.editorial_system.entity.Manuscript;
 import top.tankimzeg.editorial_system.entity.ManuscriptProcess;
 import top.tankimzeg.editorial_system.entity.Revision;
+import top.tankimzeg.editorial_system.exception.BusinessException;
 import top.tankimzeg.editorial_system.mapper.ManuscriptProcessMapper;
 import top.tankimzeg.editorial_system.mapper.RevisionRecordMapper;
 import top.tankimzeg.editorial_system.repository.ManuscriptProcessRepo;
 import top.tankimzeg.editorial_system.repository.ManuscriptRepo;
 import top.tankimzeg.editorial_system.repository.RevisionRepo;
+import top.tankimzeg.editorial_system.service.impl.RevisionAttachmentStorageService;
 
 import java.io.IOException;
 import java.util.List;
@@ -24,6 +28,7 @@ import java.util.List;
  * @date 2026/1/19 17:01
  * @description 修订服务类
  */
+@Slf4j
 @Service
 public class RevisionService {
 
@@ -37,7 +42,7 @@ public class RevisionService {
     private ManuscriptRepo manuscriptRepo;
 
     @Autowired
-    private FileStorageService fileStorageService;
+    private RevisionAttachmentStorageService fileStorageService;
 
     private static final ManuscriptProcessMapper processMapper = ManuscriptProcessMapper.INSTANCE;
 
@@ -54,8 +59,9 @@ public class RevisionService {
     public RevisionVO finishedRevision(Long processId, RevisionDTO revisionDTO, List<MultipartFile> files) {
         // 获取最新一条稿件处理流程记录，即分配修订的记录
         ManuscriptProcess process = manuscriptProcessRepo.getReferenceById(processId);
-        if (!process.getStage().equals(ManuscriptProcess.Stage.REVISION))
-            throw new RuntimeException("当前流程阶段不允许作者完成修订");
+        if (!process.getStage().equals(ManuscriptProcess.Stage.REVISION)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "当前流程阶段不允许作者完成修订");
+        }
 
         process.setComments(revisionDTO.getComments());
         manuscriptProcessRepo.save(process);
@@ -68,7 +74,8 @@ public class RevisionService {
         try {
             fileStorageService.store(files, saved);
         } catch (IOException e) {
-            throw new RuntimeException("文件保存失败", e);
+            log.error("Failed to store revision attachments, processId={}, revisionId={}", processId, saved.getId(), e);
+            throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "文件保存失败，请稍后重试");
         }
         // 更新稿件状态为修订完成
         Manuscript manuscript = process.getManuscript();
