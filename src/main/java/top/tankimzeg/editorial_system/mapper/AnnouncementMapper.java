@@ -16,7 +16,7 @@ public interface AnnouncementMapper {
     @Mapping(target = "publishedAt", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "pinned", expression = "java(request.getPinned() != null && request.getPinned())")
+    @Mapping(target = "pinned", source = "pinned", defaultValue = "false")
     Announcement requestToEntity(AnnouncementRequest request);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -25,7 +25,6 @@ public interface AnnouncementMapper {
     @Mapping(target = "publishedAt", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "pinned", expression = "java(request.getPinned() != null && request.getPinned())")
     void updateEntityFromRequest(AnnouncementRequest request, @MappingTarget Announcement entity);
 
     @Mapping(target = "status", expression = "java(entity.getStatus().name())")

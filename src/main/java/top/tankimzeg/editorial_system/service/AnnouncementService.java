@@ -45,13 +45,6 @@ public class AnnouncementService {
         return ANNOUNCEMENT_MAPPER.entityToVO(announcementRepo.save(entity));
     }
 
-    @Transactional
-    public AnnouncementVO updatePublishStatus(Long id, Boolean published) {
-        Announcement entity = findById(id);
-        applyPublishState(entity, published);
-        return ANNOUNCEMENT_MAPPER.entityToVO(announcementRepo.save(entity));
-    }
-
     @Transactional(readOnly = true)
     public AnnouncementVO getManagedOne(Long id) {
         return ANNOUNCEMENT_MAPPER.entityToVO(findById(id));

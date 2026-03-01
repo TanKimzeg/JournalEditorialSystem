@@ -18,6 +18,7 @@ import top.tankimzeg.editorial_system.utils.ApiResponse;
 @RestController
 @RequestMapping("/api/announcements")
 @Tag(name = "公告管理", description = "编辑部公告 CRUD 与发布接口")
+@PreAuthorize("hasRole('ADMIN')")
 public class AnnouncementController {
 
     @Autowired
@@ -25,7 +26,6 @@ public class AnnouncementController {
 
     @Operation(summary = "新增公告")
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<AnnouncementVO> create(@Valid @RequestBody AnnouncementRequest request) {
         return ApiResponse.success(announcementService.create(request));
@@ -33,7 +33,6 @@ public class AnnouncementController {
 
     @Operation(summary = "更新公告")
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<AnnouncementVO> update(
             @PathVariable Long id,
             @Valid @RequestBody AnnouncementRequest request
@@ -41,19 +40,8 @@ public class AnnouncementController {
         return ApiResponse.success(announcementService.update(id, request));
     }
 
-    @Operation(summary = "调整公告发布状态")
-    @PutMapping("/{id}/publish")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<AnnouncementVO> updatePublish(
-            @PathVariable Long id,
-            @Valid @RequestBody Boolean request
-    ) {
-        return ApiResponse.success(announcementService.updatePublishStatus(id, request));
-    }
-
     @Operation(summary = "删除公告")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Boolean> delete(@PathVariable Long id) {
         announcementService.delete(id);
         return ApiResponse.success(Boolean.TRUE);
@@ -61,34 +49,29 @@ public class AnnouncementController {
 
     @Operation(summary = "后台分页查询全部公告")
     @GetMapping("/managed")
-    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Page<AnnouncementVO>> listForEditors(Pageable pageable) {
         return ApiResponse.success(announcementService.listForEditors(pageable));
     }
 
     @Operation(summary = "获取后台公告详情")
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<AnnouncementVO> getManagedOne(@PathVariable Long id) {
         return ApiResponse.success(announcementService.getManagedOne(id));
     }
 
+    /**
+     * 在前端编辑公告时：
+     * <li>上传图片 → 调用已经有的 /api/announcements/upload，返回一个 URL 或 key；</li>
+     * <li>编辑器将这个 URL 插入到公告内容中；</li>
+     * <li>公共读公告页面时，浏览器会直接向这个 URL 发起 GET 请求。</li>
+     *
+     * @param picture 前端上传的图片文件
+     * @return 图片的访问 URL，前端将其插入到公告内容中
+     */
     @Operation(summary = "上传公告图片，返回图床URL")
     @PostMapping("/upload")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<String> uploadPicture(@RequestParam MultipartFile picture){
+    public ApiResponse<String> uploadPicture(@RequestParam MultipartFile picture) {
         return ApiResponse.success(announcementService.uploadPicture(picture));
     }
 
-    @Operation(summary = "获取单条公告详情")
-    @GetMapping("/public/{id}")
-    public ApiResponse<AnnouncementVO> getOne(@PathVariable Long id) {
-        return ApiResponse.success(announcementService.getPublishedOne(id));
-    }
-
-    @Operation(summary = "公开分页查询公告")
-    @GetMapping("/public")
-    public ApiResponse<Page<AnnouncementVO>> listPublished(Pageable pageable) {
-        return ApiResponse.success(announcementService.listPublished(pageable));
-    }
 }
