@@ -2,11 +2,13 @@ package top.tankimzeg.editorial_system.service.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import top.tankimzeg.editorial_system.entity.Attachment;
 import top.tankimzeg.editorial_system.entity.Manuscript;
 import top.tankimzeg.editorial_system.entity.ManuscriptAttachment;
+import top.tankimzeg.editorial_system.exception.BusinessException;
 import top.tankimzeg.editorial_system.repository.ManuscriptAttachmentRepo;
 import top.tankimzeg.editorial_system.service.FileStorageService;
 
@@ -94,14 +96,14 @@ public class ManuAttachmentStorageService implements FileStorageService<Manuscri
 
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new RuntimeException("上传文件为空");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "上传文件不能为空");
         }
         if (file.getSize() > maxSizeBytes) {
-            throw new RuntimeException("文件大小超过限制: " + maxSizeBytes + " bytes");
+            throw new BusinessException(HttpStatus.CONTENT_TOO_LARGE, "文件大小超过限制: " + maxSizeBytes + " bytes");
         }
         String contentType = file.getContentType();
         if (!isAllowedType(contentType)) {
-            throw new RuntimeException("不支持的文件类型: " + contentType);
+            throw new BusinessException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "不支持的文件类型: " + contentType);
         }
     }
 

@@ -1,7 +1,9 @@
 package top.tankimzeg.editorial_system.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,6 +15,7 @@ import top.tankimzeg.editorial_system.entity.ManuscriptProcess;
 import top.tankimzeg.editorial_system.entity.Review;
 import top.tankimzeg.editorial_system.events.FinishedInitialReviewEvent;
 import top.tankimzeg.editorial_system.events.FinishedReviewDecisionEvent;
+import top.tankimzeg.editorial_system.exception.BusinessException;
 import top.tankimzeg.editorial_system.mapper.ManuscriptProcessMapper;
 import top.tankimzeg.editorial_system.mapper.ReviewRecordMapper;
 import top.tankimzeg.editorial_system.repository.ManuscriptProcessRepo;
@@ -29,6 +32,7 @@ import java.util.List;
  * @date 2026/1/19 16:15
  * @description 评审服务类
  */
+@Slf4j
 @Service
 public class ReviewService {
 
@@ -62,8 +66,9 @@ public class ReviewService {
     public ReviewVO finishedReview(Long processId, ReviewDTO reviewDTO, List<MultipartFile> files) {
         // 获取最新一条稿件处理流程记录，即分配评审的记录
         ManuscriptProcess process = manuscriptProcessRepo.getReferenceById(processId);
-        if (!process.getStage().equals(ManuscriptProcess.Stage.PEER_REVIEW))
-            throw new RuntimeException("当前流程阶段不允许审稿专家完成评审");
+        if (!process.getStage().equals(ManuscriptProcess.Stage.PEER_REVIEW)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "当前流程阶段不允许审稿专家完成评审");
+        }
 
         Review review = reviewMapper.dtoToEntity(reviewDTO);
         review.setReviewer(process.getProcessedBy());
@@ -76,7 +81,8 @@ public class ReviewService {
         try {
             fileStorageService.store(files, saved);
         } catch (IOException e) {
-            throw new RuntimeException("保存评审附件失败", e);
+            log.error("Failed to store review attachments, processId={}, reviewId={}", processId, saved.getId(), e);
+            throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "保存评审附件失败，请稍后重试");
         }
         // 更新稿件状态为评审完成
         Manuscript manuscript = process.getManuscript();
@@ -100,8 +106,9 @@ public class ReviewService {
     public ManuscriptProcessVO finishedFinalDecision(
             Long processId, Manuscript.ManuscriptStatus finalDecision, String comment) {
         ManuscriptProcess process = manuscriptProcessRepo.getReferenceById(processId);
-        if (!process.getStage().equals(ManuscriptProcess.Stage.FINAL_DECISION))
-            throw new RuntimeException("当前流程阶段不允许做最终决定");
+        if (!process.getStage().equals(ManuscriptProcess.Stage.FINAL_DECISION)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "当前流程阶段不允许做最终决定");
+        }
 
         switch (finalDecision) {
             case ACCEPTED, REJECTED -> {
@@ -118,7 +125,7 @@ public class ReviewService {
                 eventPublisher.publishEvent(new FinishedReviewDecisionEvent(saved, reviewRepo.findReviewByProcessId(processId)));
                 return vo;
             }
-            default -> throw new RuntimeException("最终决定只能是接受或拒绝");
+            default -> throw new BusinessException(HttpStatus.BAD_REQUEST, "最终决定只能是接受或拒绝");
         }
     }
 
@@ -134,8 +141,9 @@ public class ReviewService {
     public ManuscriptProcessVO finishedInitialReview(
             Long processId, Manuscript.ManuscriptStatus initialDecision, String comment) {
         ManuscriptProcess process = manuscriptProcessRepo.getReferenceById(processId);
-        if (!process.getStage().equals(ManuscriptProcess.Stage.INITIAL_REVIEW))
-            throw new RuntimeException("当前流程阶段不允许做初审");
+        if (!process.getStage().equals(ManuscriptProcess.Stage.INITIAL_REVIEW)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "当前流程阶段不允许做初审");
+        }
 
         switch (initialDecision) {
             case UNDER_REVIEW, REJECTED -> {
@@ -151,7 +159,7 @@ public class ReviewService {
                 process.setFinishedAt(LocalDateTime.now());
                 return processMapper.entityToVO(manuscriptProcessRepo.save(process), null, null);
             }
-            default -> throw new RuntimeException("初审决定只能是送审或拒绝");
+            default -> throw new BusinessException(HttpStatus.BAD_REQUEST, "初审决定只能是送审或拒绝");
         }
     }
 

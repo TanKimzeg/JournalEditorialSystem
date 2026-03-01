@@ -1,8 +1,11 @@
 package top.tankimzeg.editorial_system.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import top.tankimzeg.editorial_system.exception.BusinessException;
 import top.tankimzeg.editorial_system.service.FileStorageService;
 
 import java.io.IOException;
@@ -19,6 +22,7 @@ import java.util.UUID;
  * @date 2026/2/27 23:49
  * @description 媒体文件存取实现类
  */
+@Slf4j
 @Service
 public class MediaStorageService implements FileStorageService<Void> {
     @Value("${storage.picture.upload-dir:uploads}")
@@ -50,7 +54,9 @@ public class MediaStorageService implements FileStorageService<Void> {
         try {
             return store(media, null);
         } catch (IOException e) {
-            throw new RuntimeException("文件保存失败：" + e.getMessage(), e);
+            log.error("Failed to store media file, originalName={}, size={}", media != null ? media.getOriginalFilename() : null,
+                    media != null ? media.getSize() : null, e);
+            throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "文件保存失败，请稍后重试");
         }
     }
 
@@ -73,14 +79,14 @@ public class MediaStorageService implements FileStorageService<Void> {
 
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new RuntimeException("上传文件为空");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "上传文件不能为空");
         }
         if (file.getSize() > maxSizeBytes) {
-            throw new RuntimeException("文件大小超过限制: " + maxSizeBytes + " bytes");
+            throw new BusinessException(HttpStatus.CONTENT_TOO_LARGE, "文件大小超过限制: " + maxSizeBytes + " bytes");
         }
         String contentType = file.getContentType();
         if (!isAllowedType(contentType)) {
-            throw new RuntimeException("不支持的文件类型: " + contentType);
+            throw new BusinessException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "不支持的文件类型: " + contentType);
         }
     }
 
