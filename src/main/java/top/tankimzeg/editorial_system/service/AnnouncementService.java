@@ -82,7 +82,8 @@ public class AnnouncementService {
 
     @Transactional
     public String uploadPicture(MultipartFile picture) {
-        // TODO: 此处返回的是文件系统中的路径，应修改为图床URL
+        // 当前返回的是图片在文件系统中的存储 key，例如 media_xxx；
+        // 前端可将该 key 拼接为 /api/public/media/{key} 用作图床 URL 进行展示。
         return storageService.store(picture);
     }
 
